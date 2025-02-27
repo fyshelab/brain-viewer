@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Flatmap Viewer</title>
+
+    <link rel="stylesheet" href="js/3D_view.css" />
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@v0.158.0/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@v0.158.0/examples/jsm/"
+        }
+      }
+    </script>
+
+    <style>
+      body {
+        background: #151515;
+        color: #c4c4c4;
+        font-family: sans;
+        margin: 10px;
+      }
+      
+      .main_content {
+        display: flex;
+        flex-direction: row;
+        gap: 10px;
+      }
+
+      .main_content > div {
+        width: 100%;
+      }
+
+
+      .round-corner {
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid black;
+        background: #151515;
+        position: relative;
+      }
+
+      .row_title2 {
+        position: relative; /* Make the box a position reference for the title */
+        padding-left: 30px; /* Space for the rotated title */
+        background: #393939;
+      }
+
+      .row_title2 div {
+        position: absolute;
+        top: 50%;
+        left: 0;
+        transform: translate(4px, 50%) rotate(-90deg);
+        transform-origin: top left;
+        white-space: nowrap;
+        padding-top: 0px;
+      }
+
+      .main_column {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .image-container {
+        position: relative;
+        display: inline-block;
+        border: 2px solid black;
+      }
+
+      .image-container img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .image-selected {
+        border: 2px solid red;
+      }
+
+      .image-container-minus::before {
+        content: "-";
+      }
+
+      .image-container-plus::before {
+        content: "+";
+      }
+
+      .image-container::before {
+        position: absolute;
+        top: 10px; /* Adjust as per your preference */
+        right: 10px; /* Adjust as per your preference */
+        width: 30px; /* Size of the button */
+        height: 30px; /* Size of the button */
+        background-color: #fff; /* Background color of the button */
+        border-radius: 50%; /* Makes the button round */
+        text-align: center;
+        line-height: 30px; /* Vertically center the plus sign */
+        font-size: 20px; /* Size of the plus sign */
+        opacity: 0; /* Hide by default */
+        transition:
+          opacity 0.3s ease,
+          transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Smooth transition for showing the button */
+        pointer-events: none; /* Prevents the button from interfering with click events */
+        color: #484848;
+        transform: scale(0);
+      }
+
+      .image-container:hover::before {
+        opacity: 1; /* Show the button on hover */
+        transform: scale(1);
+      }
+
+      .dbscan_option {
+        flex-grow: 0; /* Prevents options from growing */
+        flex-shrink: 0; /* Prevents shrinking */
+        flex-basis: auto;
+        overflow: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="popup" >
+      <div class="loader"></div> 
+    </div>
+    <div class="main_column">
+      <form id="plotForm" class="controls">
+        <input type="hidden" name="show_groups" value="0" />
+        <div class="option">
+          <span class="title">
+            <span>Mode</span>
+            <span class="tooltip">❔
+              <span class="tooltiptext">
+                <b>DBSCAN Results</b><br>
+                Explore resulting clusters of the modified DBSCAN clustering algorithm.<br>
+                <b>Cosine Similarity</b><br>
+                If images are selected, this mode plots the cosine similarities between the mean brain-decoded CLIP embeddings of the selected images, and the voxel-wise model parameters.
+              </span>
+            </span>
+          </span>
+          <div class="content">
+            <div id="mode" ></div>
+          </div>
+        </div>
+        <div class="option">
+          <span class="control_box_title"><span>Model</span></span>
+          <div class="content">
+            <div id="model"></div>
+          </div>
+        </div>
+        <div class="option">
+          <span class="title"><span>Subject</span></span>
+          <div class="content">
+            <div id="subject" ></div>
+          </div>
+        </div>
+        <div class="option">
+          <span class="title"><span>Layer</span></span>
+          <div class="content">
+            <div id="layer" ></div>
+          </div>
+        </div>
+        <div class="option">
+          <span class="title"><span>Space</span></span>
+          <div class="content">
+            <div id="space"></div>
+          </div>
+        </div>
+        <div class="flex-row" style="display: flex; flex-direction: row; justify-content: flex-start; gap: 10px;">
+          <div class="dbscan_option" >
+            <div class="title">Representative Images</div>
+            <div class="content">
+              <div id="representative_images"></div>
+            </div>
+          </div>
+          <div class="dbscan_option" >
+            <div class="title">Cluster</div>
+            <div class="content">
+              <div id="component"></div>
+            </div>
+          </div>
+          <div class="dbscan_option" >
+            <div class="title">Parent Cluster</div>
+            <div class="content">
+              <div id="parent_cluster"></div>
+            </div>
+          </div>
+          <div class="dbscan_option" >
+            <div class="title">Child Clusters</div>
+            <div class="content">
+              <div id="child_clusters"></div>
+            </div>
+          </div>
+        </div>
+        <div class="main_content" style="position: relative">
+          <div id="plot3dContainer" class="round-corner grow"></div>
+          <div id="selected_images" class="round-corner"></div>
+        </div>
+        <div id="componentExamples"></div>
+      </form>
+    </div>
+
+    <script type="module">
+      import { initScene, add_brain } from "./js/3D_view.mjs";
+      import { get_png_data } from "./js/numpy_to_js.mjs";
+      import { load_npy, concat_npy } from "./js/numpy_to_js.mjs";
+
+      import { add_image, create_row } from "./js/dom_methods.mjs";
+
+      import { getUrlObject } from "./js/obj_to_url.mjs";
+
+      const url_obj = getUrlObject({});
+
+      const scene = await initScene({
+        dom_elem: document.getElementById("plot3dContainer"),
+      });
+      scene.initialized = true;
+      
+      let models = {
+        "Linear Decoder Reruns (group-22)": "linear_decoding__group-22_reruns-2",
+        //"Linear Decoder (group-22)": "linear_decoding__group-22",
+        //"Linear Encoder": 'linear_encoding_large',
+      };
+      
+      let subjects = [];
+      let subject_options = []; // ["average"];
+      for (let subject_id = 0; subject_id < 8; subject_id++) {
+        let subject = `subj0${subject_id + 1}`;
+        subjects.push(subject);
+        subject_options.push(subject);
+      }
+
+      let spaces = {
+        "fsaverage": 'fsavg',
+        "native surface": 'fssubject',
+      };
+
+      let layers = ["pial", "layerB1", "layerB2", "layerB3", "white",];
+      let modes = ["DBSCAN Results", "Cosine Similarity"];
+
+
+      let representative_images = ['positive', 'negative']
+
+      let selected_model = Object.keys(models)[0];
+      let selected_subject = subject_options[0];
+      let selected_layer = layers[0];
+      let selected_space = Object.keys(spaces)[0];
+      let selected_mode = modes[0];
+      let selected_component = null;
+      let selected_representative_images = representative_images[0];
+    
+      let W_all = null;
+      let voxel_ids_all = null;
+      let voxel_ids_map_all = null;
+      let Y = null;
+      let stimulus_ids = null;
+      let stimulus_ids_map = null;
+      let cluster_data = null;
+
+      let file_path = (tag, items, ext,) => {
+        return `static_data/top_images_voxel/${tag}/${items.join('__')}.${ext}`
+      }
+      let root_path = 'static_data/top_images_voxel'
+
+      async function set_model() {
+        console.log("set_model", selected_model);
+
+        let tag = models[selected_model];
+        
+        W_all = {};
+        voxel_ids_map_all = {};
+        voxel_ids_all = {};
+
+        Y = load_npy(`${root_path}/${tag}/${tag}__Y.npy`);
+        stimulus_ids = load_npy(`${root_path}/${tag}/${tag}__stimulus_ids.npy`);
+        for (let subject of subjects) {
+          if (selected_mode === "Cosine Similarity") {
+            W_all[subject] = load_npy(`${root_path}/${tag}/${tag}__W__${subject}.npy`);
+          }
+          let space = null;
+          if (selected_mode === "DBSCAN Results") {
+            space = 'fsavg';
+          } else {
+            space = spaces[selected_space];
+          }
+          voxel_ids_map_all[subject] = {};
+          voxel_ids_all[subject] = {};
+          
+          voxel_ids_map_all[subject][space] = {};
+          voxel_ids_all[subject][space] = {};
+          let voxel_ids = load_npy(`${root_path}/voxel_ids__${space}__${subject}__${selected_layer}.npy`);
+          voxel_ids_all[subject][space][selected_layer] = voxel_ids;
+          let voxel_ids_map = {};
+          voxel_ids_map_all[subject][space][selected_layer] = voxel_ids_map;
+        }
+        stimulus_ids_map = {}
+        
+        Y = await Y;
+        stimulus_ids = await stimulus_ids;
+        for (const [index, element] of stimulus_ids.data.entries()) {
+          stimulus_ids_map[element] = index;
+        }
+        for (let subject of subjects) {
+          if (selected_mode === "Cosine Similarity") {
+            W_all[subject] = await W_all[subject];
+          }
+          let space = null;
+          if (selected_mode === "DBSCAN Results") {
+            space = 'fsavg';
+          } else {
+            space = spaces[selected_space];
+          }
+          voxel_ids_all[subject][space][selected_layer] = await voxel_ids_all[subject][space][selected_layer];
+          voxel_ids = voxel_ids_all[subject][space][selected_layer];
+
+          let voxel_ids_map = {};
+          for (let vertex_id = 0; vertex_id < voxel_ids.data.length; vertex_id++) {
+          if (voxel_ids.data[vertex_id] != -1) {
+              voxel_ids_map[vertex_id] = voxel_ids.data[vertex_id];
+            }
+          }
+          voxel_ids_map_all[subject][space][selected_layer] = voxel_ids_map;
+        }
+      }
+      
+      let surface_image = null;
+      let top_images_data = null;
+      let W = null;
+      let voxel_ids = null;
+      let voxel_ids_map = null;
+      let voxel_ids_fsavg = null;
+      let voxel_ids_map_fsavg = null;
+      let dbscan_components = null;
+      let top_stimulus_ids = null;
+      let top_stimulus_ids_negative = null;
+
+      async function load_data() {
+        console.log('load_data', selected_model, selected_subject, selected_layer, selected_space, selected_component);
+
+        let space = spaces[selected_space];
+        let tag = models[selected_model];
+        const run = 'hdbscan/run12';
+
+        cluster_data = await (await fetch(`${root_path}/${tag}/${run}/cluster_data.json`)).json();
+
+        surface_image = await get_png_data(`${root_path}/${tag}/${tag}__${space}__tsne__${selected_subject}__${selected_layer}.png`)
+
+        voxel_ids_fsavg = subjects.map((subject) => voxel_ids_all[subject][space][selected_layer]);
+        voxel_ids_map_fsavg = subjects.map((subject) => voxel_ids_map_all[subject][space][selected_layer]);
+
+        if (selected_subject === "average") {
+          if (selected_mode === "Cosine Similarity")
+            W = subjects.map((subject) => W_all[subject]);
+          
+          voxel_ids = voxel_ids_fsavg;
+          voxel_ids_map = voxel_ids_map_fsavg;
+        }
+        else {
+          if (selected_mode === "Cosine Similarity")
+            W = W_all[selected_subject];
+          voxel_ids = voxel_ids_all[selected_subject][space][selected_layer];
+          voxel_ids_map = voxel_ids_map_all[selected_subject][space][selected_layer];
+          top_images_data = await load_npy(`${root_path}/${tag}/${tag}__top_images__${selected_subject}.npy`);
+          if (selected_mode == 'DBSCAN Results') {
+            dbscan_components = [];
+            for (let subject of subjects) {
+              dbscan_components.push(await load_npy(`${root_path}/${tag}/${run}/${subject}/mask_expanded.npy`));
+            }
+
+            top_stimulus_ids = await load_npy(`${root_path}/${tag}/${run}/top_stimulus_ids.npy`);
+            top_stimulus_ids_negative = await load_npy(`${root_path}/${tag}/${run}/top_stimulus_ids_negative.npy`);
+            
+            console.log('dbscan_components', dbscan_components);
+            let component_options = {};
+            for (let component_id in cluster_data) {
+              let data = cluster_data[component_id];
+              if (data.description === 'None')
+                continue
+              component_options[component_id] = `${component_id}: ${data.description}`;
+            }
+            update_dropbox('component', component_options);
+            console.log('selected_component', selected_component)
+            add_buttons('parent_cluster', [cluster_data[selected_component].parent]);
+            add_buttons('child_clusters', cluster_data[selected_component].children);
+
+            let selected_images = [];
+            for (let i = 0; i < 45; i++) {
+              if (selected_representative_images == 'positive') {
+                selected_images.push(top_stimulus_ids.data[selected_component * 45 + i]);
+              } else {
+                selected_images.push(top_stimulus_ids_negative.data[selected_component * 45 + i]);
+              }
+                
+            }
+            url_obj.selected_images = selected_images;
+          }
+        }
+      }
+
+      let brains = {};
+      let previous_subject = null;
+      let brain_3d = null;
+      async function set_subject(subject) {
+        console.log("set_subject", subject);
+        if (previous_subject == subject) 
+          return;
+        previous_subject = subject;
+        if (brain_3d) {
+          brain_3d.set_inactive();
+        }
+        if (!brains[subject]) {
+          let params = {
+            scene,
+            pt_flat: `static_data/${subject}/pt_flat.npy`,
+            faces_flat: `static_data/${subject}/faces_flat.npy`,
+            pt_inflated: `static_data/${subject}/pt_inflated.npy`,
+            faces_inflated: `static_data/${subject}/faces.npy`,
+            pt_pia: `static_data/${subject}/pt_pia.npy`,
+            pt_wm: `static_data/${subject}/pt_wm.npy`,
+            curvature_path: `static_data/${subject}/curvature.npy`,
+            mapping_path: `static_data/${subject}/mapping_map.npy`,
+            overlays_path: `static_data/${subject}/overlays-version1.svg`,
+            counts: `static_data/${subject}/counts.json`,
+          };
+          brains[subject] = await add_brain(params);
+        }
+        brain_3d = brains[subject];
+        brain_3d.set_active();
+        window.brain_3d = brain_3d;
+        
+        brain_3d.set_roi_show(selected_space == 'fsaverage');
+        console.log('brain_3d', brain_3d)
+      }
+      
+
+      //await set_subject("subj01");
+      //set_model(selected_model);
+      //load_data(selected_model, selected_subject, selected_layer, selected_space);
+
+      let selection_changed_event = null;
+      async function update_plot() {
+        const form = document.getElementById("plotForm");
+        const formData = new URLSearchParams(new FormData(form));
+        
+        selected_model = formData.get("model");      
+        selected_subject = formData.get("subject") || last_subject;
+        selected_layer = formData.get("layer");
+        selected_space = formData.get("space");
+        selected_mode = formData.get("mode");
+        
+        if (selected_component === null) {
+          selected_component = 122;
+        }
+        selected_representative_images = formData.get('representative_images');
+        
+        let dbscan_mode = selected_mode == 'DBSCAN Results'
+        document.getElementById('component').parentElement.parentElement.hidden = !dbscan_mode;
+        document.getElementById('representative_images').parentElement.parentElement.hidden = !dbscan_mode;
+        document.getElementById('space').parentElement.parentElement.hidden = dbscan_mode;
+        if (selected_mode == 'DBSCAN Results') {
+          selected_space = 'fsaverage';
+        } 
+
+        if (selected_space === 'fsaverage') {
+          await set_subject('average');
+        } else if (selected_space == 'native surface') {
+          await set_subject(selected_subject);
+        }
+        
+        let loading_popup = document.getElementsByClassName("popup")[0];
+        loading_popup.style.display = 'block';
+        await set_model();
+        await load_data();
+        
+        //brain_3d.set_texture(surface_image);
+        await image_map();
+
+        if (selection_changed_event !== null)
+          await update_images(selection_changed_event);
+        scene.onWindowResize();
+        loading_popup.style.display = 'none';
+      }
+
+      document.update_plot = update_plot;
+      window.update_plot = update_plot;
+
+      function add_check_box(name, values) {
+        
+        let element = document.getElementById(name);
+        for (let [i, index] of values.entries()) {
+          let label = document.createElement("label");
+          let text = document.createElement("span");
+          text.innerText = index;
+          let checkbox = document.createElement("input");
+          checkbox.type = "radio";
+          checkbox.name = name;
+          checkbox.value = index;
+          checkbox.oninput = update_plot;
+          label.title = index;
+          label.appendChild(checkbox);
+          label.appendChild(text);
+          element.appendChild(label);
+          checkbox.checked = (i == 0);
+        }
+      }
+
+      function add_dropbox(name, values, callback, default_value=null) {
+        let element = document.getElementById(name);
+        let select = document.createElement('select');
+        select.name = name;
+        select.oninput = callback
+        element.appendChild(select);
+        for (let [i, index] of values.entries()) {
+          let option = document.createElement("option");
+          option.value = index;
+          option.innerText = index;
+          select.appendChild(option); 
+        }
+        if (default_value !== null) {
+          select.value = default_value;
+        }
+      }
+
+      function update_dropbox(name, values) {
+        values = {...values};
+        let element = document.getElementById(name);
+        let select = element.children[0];
+        let current_value = select.value;
+        while (select.firstChild) {
+          select.removeChild(select.firstChild);
+        }
+        if (!(selected_component in values)) {
+          values[selected_component] = selected_component
+        }
+        for (let [i, index] of Object.entries(values)) {
+          let option = document.createElement("option");
+          option.value = i;
+          option.innerText = index;
+          select.appendChild(option);
+        }
+        select.value = selected_component;
+        //select.selectedIndex = current_index;
+      }
+
+      function add_buttons(name, values) {
+        let container = document.getElementById(name);
+        let dropbox = document.getElementById('component');
+        let select = dropbox.children[0];
+        while (container.firstChild) {
+          container.removeChild(container.firstChild)
+        }
+        for (let value of values) {
+          let button = document.createElement("button");
+          button.textContent = value;
+          button.onclick = (event) => {
+            event.preventDefault();
+            if (value == 'root')
+              return;
+            selected_component = value;
+            select.value = value;
+            update_plot();
+          }
+          container.appendChild(button);
+        }
+      }
+
+      add_check_box("model", Object.keys(models), selected_model);
+      document.getElementById('model').parentElement.parentElement.hidden = true;
+      add_check_box("subject", subject_options, selected_subject);
+      add_check_box("space", Object.keys(spaces), selected_space);
+      add_check_box("layer", layers, selected_layer);
+      add_check_box("mode", modes, selected_mode);
+      add_dropbox('representative_images', representative_images, update_plot, selected_representative_images);
+      add_dropbox('component', [], () => {selected_component = document.getElementById('component').children[0].value; update_plot();}, selected_component);
+      update_plot();
+
+      window.addEventListener("voxel_selected_changed", async function (e) {
+        await brain_3d.set_voxel_selected(e.detail);
+      });
+      window.addEventListener("roi_show_changed", async function (e) {
+        await brain_3d.set_roi_show(e.detail);
+      });
+
+      url_obj.add_value("selected_images", [], image_map);
+      async function add_image_to_list(image_id) {
+        if (url_obj.selected_images.includes(image_id)) {
+          return;
+        }
+        url_obj.selected_images.push(image_id);
+        url_obj.selected_images = url_obj.selected_images;
+
+        await image_map();
+      }
+      async function remove_image_from_list(image_id) {
+        url_obj.selected_images.splice(
+          url_obj.selected_images.indexOf(image_id),
+          1,
+        );
+        url_obj.selected_images = url_obj.selected_images;
+        await image_map();
+      }
+
+      async function normalize(w) {
+        const w_norm = Math.sqrt(w.reduce((acc, val) => acc + val * val));
+        for (let i = 0; i < w.length; i++) {
+          w[i] /= w_norm;
+        }
+        return w;
+      }
+
+      async function get_vertex(w, vertex_id, embedding_size) {
+        if (selected_subject == 'average') {
+          
+          for (let subject_id = 0; subject_id < 8; subject_id++) {
+            if (vertex_id in voxel_ids_map[subject_id]) {
+              let voxel_id = voxel_ids_map[subject_id][vertex_id];
+              for (let k = 0; k < embedding_size; k++) {
+                  w[k] += W[subject_id].data[embedding_size * voxel_id + k];
+              }
+            }
+          }
+          w = normalize(w);
+        } 
+        
+        else {
+          if (vertex_id in voxel_ids_map) {
+            let voxel_id = voxel_ids_map[vertex_id];
+            for (let k = 0; k < embedding_size; k++) {
+                w[k] = W.data[embedding_size * voxel_id + k];
+            }
+          }
+        }
+        return w;
+      }
+
+      async function image_map() {
+        let elem = document.getElementById("selected_images");
+        elem.innerHTML = "";
+
+        for (let image_id of url_obj.selected_images) {
+          let im = add_image(elem, `static_data/new_examples/${image_id}.jpg`);
+          im.onclick = async () => remove_image_from_list(image_id);
+          im.className = "image-container image-container-minus";
+        }
+
+        let num_voxels = null;
+        let num_vertices = null;
+        let embedding_size = null;
+        if (selected_subject == "average") {
+          num_vertices = voxel_ids[0].shape[0];
+        } else {
+          num_vertices = voxel_ids.shape[0];
+        }       
+
+        let voxel_image_count = new Int32Array(num_vertices);
+        voxel_image_count.fill(-1);
+        let cmap_scale = url_obj.selected_images.length + 1;
+        let cmap_name = 'turbo';
+
+        if (selected_mode === "Top Image Check") {
+          if (url_obj.selected_images.length == 0) {
+            brain_3d.set_texture(surface_image);
+            return;
+          }
+          // iterate over voxels
+          for (let vertex_id in voxel_ids_map) {
+            let voxel_id = voxel_ids_map[vertex_id];
+
+            voxel_image_count[vertex_id] = 0;
+            let list = top_images_data.data[voxel_id * top_images_data.shape[1]];
+
+            let found = 0;
+            for (let image_id of url_obj.selected_images) {
+              // find the image id
+              for (let j = 0; j < top_images_data.shape[1]; j++) {
+                // if found set the voxel data as the index of the image in the list
+                if (top_images_data.data[voxel_id * top_images_data.shape[1] + j] === image_id) {
+                  found += 1;
+                  break;
+                }
+              }
+            }
+            voxel_image_count[vertex_id] = found;
+          }
+        }
+        else if (selected_mode === "Cosine Similarity") {
+          let num_voxels = null;
+          let num_vertices = null;
+          let embedding_size = null;
+          if (selected_subject == "average") {
+            num_voxels = W[0].shape[0];
+            embedding_size = W[0].shape[1];
+          } else {
+            num_voxels = W.shape[0];
+            embedding_size = W.shape[1];
+          }       
+          // TODO: Implement floating point surface maps so scaling by 100 isnt necessary
+          cmap_scale = 100;
+
+          
+          let Y_selected_mean = new Float32Array(embedding_size);
+          // If no images are selected, use currently selected voxel
+          if (url_obj.selected_images.length == 0 && selection_changed_event !== null) {
+            let vertex_id = selection_changed_event.detail.voxel;
+            get_vertex(Y_selected_mean, vertex_id, embedding_size);
+          } else {
+            for (let image_id of url_obj.selected_images) {
+              for (let j = 0; j < embedding_size; j++) {
+                let i = stimulus_ids_map[image_id];
+                Y_selected_mean[j] += Y.data[i * embedding_size + j]
+              }
+            }
+            const Y_selected_mean_norm = Math.sqrt(Y_selected_mean.reduce((acc, val) => acc + val * val));
+            Y_selected_mean = Y_selected_mean.map((val) => val / Y_selected_mean_norm);
+          }
+          
+
+          let max_val = 0;
+          let w = new Float32Array(embedding_size);
+
+          let vertex_ids = null;
+          if (selected_subject === 'average') {
+            vertex_ids = new Set();
+            for (let i = 0; i < 8; i++) {
+              for (let elem of Object.keys(voxel_ids_map[i])) {
+                vertex_ids.add(elem);
+              }
+            }
+          } else {
+            vertex_ids = Object.keys(voxel_ids_map);
+          }
+          
+          for (let vertex_id of vertex_ids) {
+            get_vertex(w, vertex_id, embedding_size);
+
+            let w_dot_Y = 0.;
+            for (let k = 0; k < embedding_size; k++) {
+              w_dot_Y += Y_selected_mean[k] * w[k];
+            }
+            w_dot_Y = Math.max(Math.round(w_dot_Y * cmap_scale), 0.);
+            if (w_dot_Y > max_val)
+                max_val = w_dot_Y;
+            voxel_image_count[vertex_id] = w_dot_Y;
+          }
+          cmap_scale = max_val;
+        }
+        else if (selected_mode == 'DBSCAN Results') {
+          
+          let vertex_ids = new Set();
+          for (let i = 0; i < 8; i++) {
+            for (let elem of Object.keys(voxel_ids_map_fsavg[i])) {
+              vertex_ids.add(elem);
+            }
+          }
+          cmap_scale = 10;
+          cmap_name = 'subject';
+          for (let subject_id = 0; subject_id < 8; subject_id++) {
+            for (let vertex_id of vertex_ids) {
+              if (!(vertex_id in voxel_ids_map_fsavg[subject_id])) {
+                continue
+              }
+              let voxel_id = voxel_ids_map_fsavg[subject_id][vertex_id];
+
+              if (voxel_image_count[vertex_id] == -1) {
+                voxel_image_count[vertex_id] = 0;
+              }
+
+              let subject_components = dbscan_components[subject_id];
+              if (subject_components.data[subject_components.shape[1] * selected_component + voxel_id] > 0) {
+                if (voxel_image_count[vertex_id] == 0) {
+                  voxel_image_count[vertex_id] = subject_id + 1;
+                } else {
+                  voxel_image_count[vertex_id] = 9;
+                }
+              }
+            }
+          }
+
+        }
+
+        // convert voxel data to texture
+        brain_3d.set_texture(
+          await brain_3d.voxels_to_flatmap(
+            voxel_image_count,
+            cmap_scale,
+            cmap_name,
+          ),
+        );
+        scene.set_cmap_display(cmap_name, cmap_scale);
+      }
+
+      if (url_obj.selected_images.length) 
+        image_map();
+
+      async function update_images(e) {
+        // when a voxel has been clicked show the images
+
+        if (selected_subject == 'average')
+          return;
+
+        function add_row(parent, component_id) {
+          // add a row with a title for each 10 images
+          let row = create_row(
+            parent,
+            `${component_id * 10} - ${(component_id + 1) * 10}`,
+          );
+
+          // add the images and add an onclick function
+          for (let i = 0; i < 10; i++) {
+            let voxel_id = voxel_ids_map[e.detail.voxel];
+            let offset = component_id * 10 + i
+            let im_id = top_images_data.data[voxel_id * top_images_data.shape[1] + offset];
+            let img = add_image(row, `static_data/new_examples/${im_id}.jpg`);
+            img.onclick = function () {
+              if (!url_obj.selected_images.includes(im_id)) {
+                add_image_to_list(im_id);
+                img.className =
+                  "image-container image-container-minus image-selected";
+              } else {
+                remove_image_from_list(im_id);
+                img.className = "image-container image-container-plus";
+              }
+            };
+            if (url_obj.selected_images.includes(im_id)) {
+              img.className =
+                "image-container image-container-minus image-selected";
+            } else img.className = "image-container image-container-plus";
+          }
+        }
+
+        // empty the display
+        let element_examples = document.getElementById("componentExamples");
+        element_examples.innerHTML = "";
+
+        // add the rows
+        if (top_images_data.data[e.detail.voxel * top_images_data.shape[1]] < 0)
+          return;
+        for (let i = 0; i < 5; i++) {
+          add_row(element_examples, i);
+        }
+      }
+
+      window.addEventListener("voxel_selected_changed", async function (e) {
+        selection_changed_event = e;
+        update_images(e);
+        image_map();
+      });
+    </script>
+  </body>
+</html>

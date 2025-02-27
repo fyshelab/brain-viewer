@@ -1,0 +1,208 @@
+.slidecontainer {
+  width: 160px; /* Width of the outside container */
+  max-width: 80%;
+  position: absolute;
+  bottom: 5px;
+  left: 5px;
+}
+
+/* The slider itself */
+.slider {
+  -webkit-appearance: none; /* Override default CSS styles */
+  appearance: none;
+  width: 100%; /* Full-width */
+  height: 8px; /* Specified height */
+  background: #262626c9; /* Grey background */
+  outline: none; /* Remove outline */
+  opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
+  -webkit-transition: 0.2s; /* 0.2 seconds transition on hover */
+  transition: opacity 0.2s;
+  border-radius: 10px;
+}
+
+/* Mouse-over effects */
+.slider:hover {
+  opacity: 1; /* Fully shown on mouse-over */
+}
+
+/* The slider handle (use -webkit- (Chrome, Opera, Safari, Edge) and -moz- (Firefox) to override default look) */
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none; /* Override default look */
+  appearance: none;
+  width: 13px; /* Set a specific slider handle width */
+  height: 13px; /* Slider handle height */
+  background: #242424; /* Green background */
+  cursor: pointer; /* Cursor on hover */
+}
+
+.slider::-moz-range-thumb {
+  width: 13px; /* Set a specific slider handle width */
+  height: 13px; /* Slider handle height */
+  background: #242424; /* Green background */
+  cursor: pointer; /* Cursor on hover */
+}
+
+.slider_buttons {
+  bottom: 30px;
+  position: absolute;
+  left: 10px;
+  display: flex;
+  gap: 6px;
+}
+
+.slider_button {
+  border: 0px solid black;
+  border-radius: 10px;
+  padding: 5px;
+  cursor: pointer;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+  background-color: gray;
+  width: 35px;
+  height: 35px;
+  /*filter: brightness(0.3);*/
+  opacity: 0.5;
+  transition: background-color 0.5s ease-in-out;
+}
+
+.img_inflated {
+  background-image: url("../img/inflated.png");
+}
+
+.img_flat {
+  background-image: url("../img/flat.png");
+}
+
+.img_pia {
+  background-image: url("../img/pia.png");
+}
+
+.img_wm {
+  background-image: url("../img/wm.png");
+}
+
+.img_selected {
+  background-color: darkred;
+}
+
+.progress {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 5px;
+  background: red;
+  width: 0%;
+}
+
+/* Hub */
+.colorbar {
+      position: absolute;
+      bottom: 35px;
+      right: 20px;
+  }
+
+  .colorbar canvas {
+      border: 1px solid #c4c4c4;
+  }
+
+  .colorbar span {
+      position: absolute;
+      top: 15px;
+      width: 20px;
+      transform: translate(-10px, 0);
+      text-align: center;
+  }
+
+  .colorbar span:before {
+      content: '';
+      display: block;
+      background: #c4c4c4;
+      width: 1px;
+      height: 6px;
+      margin-left: 10px;
+      margin-bottom: 2px;
+      margin-top: 2px;
+  }
+
+/* HTML: <div class="loader"></div> */
+.loader {
+  width: 15vh;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 3vh solid;
+  border-color: #ffffff #ff000000;
+  animation: l1 1s infinite;
+  position: fixed;
+  z-index: 100;
+  top: 42.5vh;
+  left: 42.5vw;
+}
+@keyframes l1 {to{transform: rotate(.5turn)}}
+
+.popup {
+  width: 100vw;
+  height: 100vh;
+  position: fixed;
+  background-color: #5f5f5fbd;
+  z-index: 99;
+}
+
+#selected_images {
+  overflow-y: scroll;
+  height:60vh;
+  width: 25vw;
+}
+
+#plot3dContainer {
+  height: 60vh;
+  width: 75vw;
+}
+
+#componentExamples {
+  width: 100%;
+  height: 40h;
+  overflow-x: scroll;
+  overflow-y: scroll;
+  border-radius: 10px;
+  background: #262626c9;
+  min-height: 128px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+#componentExamples div {
+  display: flex;
+}
+
+.tooltip {
+  position: relative;
+  font-size: 80%;
+  border: 1px solid red;
+}
+
+/* Tooltip text */
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: auto;
+  max-width: 300px;
+  min-width: max-content;
+  white-space: normal;
+  background-color: rgb(75, 75, 75);
+  color: #fff;
+  text-align: left;
+  padding: 5px 5px;
+  border-radius: 6px;
+ 
+  /* Position the tooltip text - see examples below! */
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  border: 1px solid blue;
+}
+
+/* Show the tooltip text when you mouse over the tooltip container */
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+}
