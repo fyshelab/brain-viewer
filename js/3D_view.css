@@ -179,7 +179,6 @@
 .tooltip {
   position: relative;
   font-size: 80%;
-  border: 1px solid red;
 }
 
 /* Tooltip text */
@@ -199,10 +198,17 @@
   position: absolute;
   z-index: 1;
   top: 50%;
-  border: 1px solid blue;
+  border: 1px solid rgb(103, 103, 103);
 }
 
 /* Show the tooltip text when you mouse over the tooltip container */
 .tooltip:hover .tooltiptext {
   visibility: visible;
+}
+
+.dbscan_option {
+  flex-grow: 0; /* Prevents options from growing */
+  flex-shrink: 0; /* Prevents shrinking */
+  flex-basis: auto;
+  overflow: visible;
 }

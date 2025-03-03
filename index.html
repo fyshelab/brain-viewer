@@ -114,12 +114,7 @@
         transform: scale(1);
       }
 
-      .dbscan_option {
-        flex-grow: 0; /* Prevents options from growing */
-        flex-shrink: 0; /* Prevents shrinking */
-        flex-basis: auto;
-        overflow: auto;
-      }
+
     </style>
   </head>
   <body>
@@ -137,7 +132,9 @@
                 <b>DBSCAN Results</b><br>
                 Explore resulting clusters of the modified DBSCAN clustering algorithm.<br>
                 <b>Cosine Similarity</b><br>
-                If images are selected, this mode plots the cosine similarities between the mean brain-decoded CLIP embeddings of the selected images, and the voxel-wise model parameters.
+                Plots the cosine similarities between a comparison vector and the voxel-wise model parameters.<br>
+                If images are selected, the comparison vector is the mean of the brain-decoded CLIP embeddings of the selected images.<br>
+                If the image selection is empty, the comparison vector is the model parameter vector for a particular voxel chosen by clicking the brain surface.<br>
               </span>
             </span>
           </span>
@@ -152,44 +149,88 @@
           </div>
         </div>
         <div class="option">
-          <span class="title"><span>Subject</span></span>
+          <span class="title">
+            <span>Subject</span>
+            <span class="tooltip">❔
+              <span class="tooltiptext">
+                Sets the currently selected NSD participant. After a voxel has been selected by clicking the brain surface, the top <br>
+                representative images for that voxel are displayed in the bottom panel.
+              </span>
+            </span>
+          </span>
           <div class="content">
             <div id="subject" ></div>
           </div>
         </div>
         <div class="option">
-          <span class="title"><span>Layer</span></span>
+          <span class="title">
+            <span>Layer</span>
+            <span class="tooltip">❔
+              <span class="tooltiptext">
+                Sets the brain surface layer. Pial is the outermost layer, white is the boundary between grey and white matter, and <br>
+                layerBX are 3 intermediate layers.
+              </span>
+            </span>
+          </span>
           <div class="content">
             <div id="layer" ></div>
           </div>
         </div>
         <div class="option">
-          <span class="title"><span>Space</span></span>
+          <span class="title">
+            <span>Space</span>
+            <span class="tooltip">❔
+              <span class="tooltiptext">
+                Display the results on the fsaverage atlas surface, or the subject specific surface mesh.
+              </span>
+            </span>
+          </span>
           <div class="content">
             <div id="space"></div>
           </div>
         </div>
         <div class="flex-row" style="display: flex; flex-direction: row; justify-content: flex-start; gap: 10px;">
           <div class="dbscan_option" >
-            <div class="title">Representative Images</div>
+            <span class="title">Representative Images</span>
+            <span class="tooltip">❔
+              <span class="tooltiptext">
+                Display either the positive or negative representative images for the current cluster in the right panel.
+              </span>
+            </span>
             <div class="content">
               <div id="representative_images"></div>
             </div>
           </div>
           <div class="dbscan_option" >
-            <div class="title">Cluster</div>
+            <span class="title">Cluster</span>
+            <span class="tooltip">❔
+              <span class="tooltiptext">
+                Sets the currently selected cluster.
+              </span>
+            </span>
             <div class="content">
               <div id="component"></div>
             </div>
           </div>
           <div class="dbscan_option" >
-            <div class="title">Parent Cluster</div>
+            <span class="title">Parent Cluster</span>
+            <span class="tooltip">❔
+              <span class="tooltiptext">
+                Click to select the parent of the currently selected cluster.
+              </span>
+            </span>
             <div class="content">
               <div id="parent_cluster"></div>
             </div>
           </div>
           <div class="dbscan_option" >
-            <div class="title">Child Clusters</div>
+            <span class="title">Child Clusters</span>
+            <span class="tooltip">❔
+              <span class="tooltiptext">
+                Click to select any of the child clusters of the currently selected clusters.<br>
+                No buttons are displayed if the current cluster is a leaf node in the hierarchy.
+              </span>
+            </span>
             <div class="content">
               <div id="child_clusters"></div>
             </div>
