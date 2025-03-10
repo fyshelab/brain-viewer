@@ -97,33 +97,39 @@
 
 /* Hub */
 .colorbar {
-      position: absolute;
+  
+      position: absolute !important;
       bottom: 35px;
       right: 20px;
   }
 
-  .colorbar canvas {
-      border: 1px solid #c4c4c4;
-  }
+.colorbar canvas {
+    border: 1px solid #c4c4c4;
+}
 
-  .colorbar span {
-      position: absolute;
-      top: 15px;
-      width: 20px;
-      transform: translate(-10px, 0);
-      text-align: center;
-  }
+.colorbar-tick {
+    position: absolute;
+    top: 15px;
+    width: 20px;
+    transform: translate(-10px, 0);
+    text-align: center;
+    font-size: 0.4;
+}
 
-  .colorbar span:before {
-      content: '';
-      display: block;
-      background: #c4c4c4;
-      width: 1px;
-      height: 6px;
-      margin-left: 10px;
-      margin-bottom: 2px;
-      margin-top: 2px;
-  }
+.colorbar-tick > span {
+  transform: rotate(90deg);
+}
+
+.colorbar-tick:before {
+  content: '';
+  display: block;
+  background: #c4c4c4;
+  width: 1px;
+  height: 6px;
+  margin-left: 10px;
+  margin-bottom: 2px;
+  margin-top: 2px;
+}
 
 /* HTML: <div class="loader"></div> */
 .loader {
@@ -148,15 +154,34 @@
   z-index: 99;
 }
 
-#selected_images {
-  overflow-y: scroll;
-  height:60vh;
-  width: 25vw;
+.representative-images {
+  overflow-y: scroll !important;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 columns */
+  width: 330px;
+  gap: 0px; 
 }
 
 #plot3dContainer {
-  height: 60vh;
-  width: 75vw;
+  overflow: visible;
+  flex-grow: 1;
+  height: 100%; /* Take full height */
+}
+
+.main_content {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 10px;
+  height: calc(100vh - 60px);
+}
+
+.round-corner {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid black;
+  background: #151515;
+  position: relative;
 }
 
 #componentExamples {

@@ -536,7 +536,17 @@ export function interpolateColor(color1, color2, factor) {
   );
 }
 
-export function get_cmap_display(dom_element, name = "turbo", color_count = 9) {
+export function get_cmap_display(dom_element, name = "turbo", color_count = 9, num_ticks = 5, labels = null) {
+  let ticks = dom_element.querySelectorAll(".colorbar-tick");
+  console.log(ticks);
+  for (let tick of ticks) {
+    tick.remove();
+  }
+  for (let i = 0; i < num_ticks; i++) {
+    let tick = document.createElement("span");
+    tick.className = 'colorbar-tick';
+    dom_element.appendChild(tick);
+  }
   let [w, h] = [200, 15];
   let cmap_display = new Uint32Array(w * h);
   let my_cmap = get_cmap_uint32(name, color_count);
@@ -547,15 +557,22 @@ export function get_cmap_display(dom_element, name = "turbo", color_count = 9) {
     }
   }
   let canvas = dom_element.querySelector("canvas");
-  for (let i = 0; i < 5; i++) {
-    let element = dom_element.getElementsByTagName("span")[i];
-    let ratio = parseInt((i / 4) * color_count);
+  ticks = dom_element.querySelectorAll(".colorbar-tick");
+  for (let i = 0; i < num_ticks; i++) {
+    let element = ticks[i];
+    let ratio = parseInt((i / (num_ticks - 1)) * color_count);
     if (ratio > color_count - 1) 
       ratio = color_count - 1;
-    element.innerText = ratio;
+    let text_element = document.createElement("span");
+    element.appendChild(text_element);
+    if (labels === null) {
+      text_element.innerText = ratio;
+    } else {
+      text_element.innerText = labels[i];
+    }
     ratio += 0.5
     element.style.left = `${((ratio) / color_count) * 100}%`;
-    if (i === 4)
+    if (i === (num_ticks - 1))
       element.style.left = `calc(${((ratio) / color_count) * 100}% - 1px)`;
   }
   canvas.width = w;

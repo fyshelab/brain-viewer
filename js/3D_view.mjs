@@ -205,8 +205,8 @@ export async function initScene({ dom_elem }) {
   window.animateCamera = animateCamera;
   window.THREE = THREE;
 
-  function set_cmap_display(name = "turbo", color_count = 9) {
-    get_cmap_display(dom_controls.colorbar, name, color_count);
+  function set_cmap_display(name = "turbo", color_count = 9, num_ticks = 5, labels = null) {
+    get_cmap_display(dom_controls.colorbar, name, color_count, num_ticks, labels);
   }
   scene.set_cmap_display = set_cmap_display;
 
@@ -885,15 +885,32 @@ function create_controls(parent) {
   parent.appendChild(slider_shape);
 
   let colorbar = document.createElement("div");
-  colorbar.className = "colorbar";
+  colorbar.classList.add('tooltip')
+  colorbar.classList.add('colorbar')
+  parent.appendChild(colorbar);
+
   let canvas_cbar = document.createElement("canvas");
   canvas_cbar.width = 200;
   canvas_cbar.height = 15;
   colorbar.appendChild(canvas_cbar);
-  for (let i = 0; i < 5; i++) {
-    colorbar.appendChild(document.createElement("span"));
-  }
-  parent.appendChild(colorbar);
+
+  let colorbar_tooltip = document.createElement('span');
+  colorbar_tooltip.style = `
+    position: absolute;
+    top: -130px;
+    left: -300px;
+    transform: translate(0%, 0%);
+  `;
+  colorbar_tooltip.className = 'tooltiptext'
+  colorbar_tooltip.innerHTML = `
+  <b>Colorbar Legend</b><br>
+  B - Black voxels are decoder model inputs for one or more subjects,<br> but are not included in the selected cluster.<br>
+  S# - Voxels that are in the current cluster. The color indicates which subject the voxel belongs to.<br>
+  O - White voxels indicate overlapping subjects.<br>
+  The background gray regions are not included in the decoder model and can not be in any cluster.<br>
+  The light gray regions are gryi and dark gray regions are sulci.<br>
+  `
+  colorbar.appendChild(colorbar_tooltip)
 
   return {
     progress,

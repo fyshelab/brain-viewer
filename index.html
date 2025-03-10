@@ -22,27 +22,9 @@
         color: #c4c4c4;
         font-family: sans;
         margin: 10px;
+        overflow: hidden;
       }
       
-      .main_content {
-        display: flex;
-        flex-direction: row;
-        gap: 10px;
-      }
-
-      .main_content > div {
-        width: 100%;
-      }
-
-
-      .round-corner {
-        border-radius: 10px;
-        overflow: hidden;
-        border: 1px solid black;
-        background: #151515;
-        position: relative;
-      }
-
       .row_title2 {
         position: relative; /* Make the box a position reference for the title */
         padding-left: 30px; /* Space for the rotated title */
@@ -127,7 +109,7 @@
         <div class="option">
           <span class="title">
             <span>Mode</span>
-            <span class="tooltip">❔
+            <span class="tooltip">ℹ️
               <span class="tooltiptext">
                 <b>DBSCAN Results</b><br>
                 Explore resulting clusters of the modified DBSCAN clustering algorithm.<br>
@@ -151,7 +133,7 @@
         <div class="option">
           <span class="title">
             <span>Subject</span>
-            <span class="tooltip">❔
+            <span class="tooltip">ℹ️
               <span class="tooltiptext">
                 Sets the currently selected NSD participant. After a voxel has been selected by clicking the brain surface, the top <br>
                 representative images for that voxel are displayed in the bottom panel.
@@ -165,7 +147,7 @@
         <div class="option">
           <span class="title">
             <span>Layer</span>
-            <span class="tooltip">❔
+            <span class="tooltip">ℹ️
               <span class="tooltiptext">
                 Sets the brain surface layer. Pial is the outermost layer, white is the boundary between grey and white matter, and <br>
                 layerBX are 3 intermediate layers.
@@ -179,7 +161,7 @@
         <div class="option">
           <span class="title">
             <span>Space</span>
-            <span class="tooltip">❔
+            <span class="tooltip">ℹ️
               <span class="tooltiptext">
                 Display the results on the fsaverage atlas surface, or the subject specific surface mesh.
               </span>
@@ -192,7 +174,7 @@
         <div class="flex-row" style="display: flex; flex-direction: row; justify-content: flex-start; gap: 10px;">
           <div class="dbscan_option" >
             <span class="title">Representative Images</span>
-            <span class="tooltip">❔
+            <span class="tooltip">ℹ️
               <span class="tooltiptext">
                 Display either the positive or negative representative images for the current cluster in the right panel.
               </span>
@@ -203,7 +185,7 @@
           </div>
           <div class="dbscan_option" >
             <span class="title">Cluster</span>
-            <span class="tooltip">❔
+            <span class="tooltip">ℹ️
               <span class="tooltiptext">
                 Sets the currently selected cluster.
               </span>
@@ -214,7 +196,7 @@
           </div>
           <div class="dbscan_option" >
             <span class="title">Parent Cluster</span>
-            <span class="tooltip">❔
+            <span class="tooltip">ℹ️
               <span class="tooltiptext">
                 Click to select the parent of the currently selected cluster.
               </span>
@@ -225,7 +207,7 @@
           </div>
           <div class="dbscan_option" >
             <span class="title">Child Clusters</span>
-            <span class="tooltip">❔
+            <span class="tooltip">ℹ️
               <span class="tooltiptext">
                 Click to select any of the child clusters of the currently selected clusters.<br>
                 No buttons are displayed if the current cluster is a leaf node in the hierarchy.
@@ -236,11 +218,11 @@
             </div>
           </div>
         </div>
-        <div class="main_content" style="position: relative">
+        <div class="main_content">
+          <div id="positive_images" class="round-corner representative-images"></div>
           <div id="plot3dContainer" class="round-corner grow"></div>
-          <div id="selected_images" class="round-corner"></div>
+          <div id="negative_images" class="round-corner representative-images"></div>
         </div>
-        <div id="componentExamples"></div>
       </form>
     </div>
 
@@ -292,6 +274,9 @@
       let selected_mode = modes[0];
       let selected_component = null;
       let selected_representative_images = representative_images[0];
+
+      let positive_selected_images = [];
+      let negative_selected_images = [];
     
       let W_all = null;
       let voxel_ids_all = null;
@@ -426,17 +411,13 @@
             console.log('selected_component', selected_component)
             add_buttons('parent_cluster', [cluster_data[selected_component].parent]);
             add_buttons('child_clusters', cluster_data[selected_component].children);
-
-            let selected_images = [];
+            
+            positive_selected_images = [];
+            negative_selected_images = [];
             for (let i = 0; i < 45; i++) {
-              if (selected_representative_images == 'positive') {
-                selected_images.push(top_stimulus_ids.data[selected_component * 45 + i]);
-              } else {
-                selected_images.push(top_stimulus_ids_negative.data[selected_component * 45 + i]);
-              }
-                
+              positive_selected_images.push(top_stimulus_ids.data[selected_component * 45 + i]);
+              negative_selected_images.push(top_stimulus_ids_negative.data[selected_component * 45 + i]);
             }
-            url_obj.selected_images = selected_images;
           }
         }
       }
@@ -499,7 +480,7 @@
         
         let dbscan_mode = selected_mode == 'DBSCAN Results'
         document.getElementById('component').parentElement.parentElement.hidden = !dbscan_mode;
-        document.getElementById('representative_images').parentElement.parentElement.hidden = !dbscan_mode;
+        //document.getElementById('representative_images').parentElement.parentElement.hidden = !dbscan_mode;
         document.getElementById('space').parentElement.parentElement.hidden = dbscan_mode;
         if (selected_mode == 'DBSCAN Results') {
           selected_space = 'fsaverage';
@@ -611,10 +592,14 @@
       add_check_box("model", Object.keys(models), selected_model);
       document.getElementById('model').parentElement.parentElement.hidden = true;
       add_check_box("subject", subject_options, selected_subject);
+      document.getElementById('subject').parentElement.parentElement.hidden = true;
       add_check_box("space", Object.keys(spaces), selected_space);
       add_check_box("layer", layers, selected_layer);
+      document.getElementById('layer').parentElement.parentElement.hidden = true;
       add_check_box("mode", modes, selected_mode);
+      document.getElementById('mode').parentElement.parentElement.hidden = true;
       add_dropbox('representative_images', representative_images, update_plot, selected_representative_images);
+      document.getElementById('representative_images').parentElement.parentElement.hidden = true;
       add_dropbox('component', [], () => {selected_component = document.getElementById('component').children[0].value; update_plot();}, selected_component);
       update_plot();
 
@@ -678,13 +663,20 @@
       }
 
       async function image_map() {
-        let elem = document.getElementById("selected_images");
-        elem.innerHTML = "";
+        let positive_elem = document.getElementById("positive_images");
+        let negative_elem = document.getElementById("negative_images");
+        positive_elem.innerHTML = "";
+        negative_elem.innerHTML = "";
 
-        for (let image_id of url_obj.selected_images) {
-          let im = add_image(elem, `static_data/new_examples/${image_id}.jpg`);
-          im.onclick = async () => remove_image_from_list(image_id);
-          im.className = "image-container image-container-minus";
+        for (let image_id of positive_selected_images) {
+          let im = add_image(positive_elem, `static_data/new_examples/${image_id}.jpg`, 96, 96);
+          // im.onclick = async () => remove_image_from_list(image_id);
+          im.className = "image-container";
+        }
+        for (let image_id of negative_selected_images) {
+          let im = add_image(negative_elem, `static_data/new_examples/${image_id}.jpg`, 96, 96);
+          // im.onclick = async () => remove_image_from_list(image_id);
+          im.className = "image-container";
         }
 
         let num_voxels = null;
@@ -700,6 +692,8 @@
         voxel_image_count.fill(-1);
         let cmap_scale = url_obj.selected_images.length + 1;
         let cmap_name = 'turbo';
+        let cmap_labels = null;
+        let cmap_ticks = 5;
 
         if (selected_mode === "Top Image Check") {
           if (url_obj.selected_images.length == 0) {
@@ -789,7 +783,6 @@
           cmap_scale = max_val;
         }
         else if (selected_mode == 'DBSCAN Results') {
-          
           let vertex_ids = new Set();
           for (let i = 0; i < 8; i++) {
             for (let elem of Object.keys(voxel_ids_map_fsavg[i])) {
@@ -798,6 +791,8 @@
           }
           cmap_scale = 10;
           cmap_name = 'subject';
+          cmap_ticks = 10;
+          cmap_labels = ['B', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'O'];
           for (let subject_id = 0; subject_id < 8; subject_id++) {
             for (let vertex_id of vertex_ids) {
               if (!(vertex_id in voxel_ids_map_fsavg[subject_id])) {
@@ -830,7 +825,7 @@
             cmap_name,
           ),
         );
-        scene.set_cmap_display(cmap_name, cmap_scale);
+        scene.set_cmap_display(cmap_name, cmap_scale, cmap_ticks, cmap_labels);
       }
 
       if (url_obj.selected_images.length) 
@@ -838,6 +833,7 @@
 
       async function update_images(e) {
         // when a voxel has been clicked show the images
+        return;
 
         if (selected_subject == 'average')
           return;
@@ -885,6 +881,7 @@
       }
 
       window.addEventListener("voxel_selected_changed", async function (e) {
+        return;
         selection_changed_event = e;
         update_images(e);
         image_map();
